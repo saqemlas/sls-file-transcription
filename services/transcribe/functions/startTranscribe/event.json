@@ -1,0 +1,40 @@
+{
+    "event": {
+        "Records": [
+            {
+                "awsRegion": "eu-west-1",
+                "eventName": "ObjectCreated:Put",
+                "eventSource": "aws:s3",
+                "eventTime": "2022-08-07T22:14:21.906Z",
+                "eventVersion": "2.1",
+                "requestParameters": {
+                    "sourceIPAddress": "94.8.187.202"
+                },
+                "responseElements": {
+                    "x-amz-id-2": "7h46kUkYbUEOZuv3W3DNeLAiItq0oo4au9RJmSkpkgW6ToqziYC925WuqWFtT0W/8Is2/NVE0bYWIbJywK3ptySGHa0R7HN4",
+                    "x-amz-request-id": "TKV9D4SXH15ZWQ7P"
+                },
+                "s3": {
+                    "bucket": {
+                        "arn": "arn:aws:s3:::template-audiostore-dev-audiostorebucket-13ygk10svz773",
+                        "name": "template-audiostore-dev-audiostorebucket-13ygk10svz773",
+                        "ownerIdentity": {
+                            "principalId": "A262KW2LJ44B9W"
+                        }
+                    },
+                    "configurationId": "template-transcribe-dev-processaudio-93fc42b9940ee4cf4b3169fec1b61316",
+                    "object": {
+                        "eTag": "89571aea16e2e6c3de5c4b726e201c5c",
+                        "key": "uploads/test.mp3",
+                        "sequencer": "0062F0393DD60AFB2F",
+                        "size": 57408
+                    },
+                    "s3SchemaVersion": "1.0"
+                },
+                "userIdentity": {
+                    "principalId": "AWS:EXAMPLE"
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,36 @@
+{
+  "name": "@audio-analysis/audio-analysis",
+  "version": "1.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "workspaces": [
+    "services/*"
+  ],
+  "scripts": {
+    "clean": "lerna run clean --stream --parallel -- && rimraf node_modules && yarn cache clean",
+    "ci": "yarn install --frozen-lockfile",
+    "ci:audit": "yarn audit --moderate",
+    "ci:audit:fix": "yarn-audit-fix",
+    "postinstall": "husky install && husky set .husky/pre-commit 'yarn run precommit'",
+    "precommit": "yarn run lint && yarn run checktsc && yarn run test",
+    "lint": "eslint --ext .ts,.json .",
+    "lint:fix": "eslint --ext .ts,.json --fix",
+    "checktsc": "lerna run checktsc --stream --parallel --",
+    "coverage": "lerna run coverage --stream --parallel --",
+    "test": "lerna run test --stream --parallel --",
+    "deploy": "lerna run deploy --ignore @audio-analysis/ui --stream --",
+    "remove": "lerna ls --toposort | tac | xargs -I % lerna run --stream --no-bail --scope % remove --"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "5.0.0",
+    "@typescript-eslint/parser": "5.0.0",
+    "eslint": "7.11.0",
+    "eslint-plugin-import": "2.25.1",
+    "eslint-plugin-jest": "25.0.5",
+    "eslint-plugin-json-format": "2.0.1",
+    "lerna": "4.0.0",
+    "husky": "7.0.2",
+    "rimraf": "3.0.2",
+    "yarn-audit-fix": "7.0.8"
+  }
+}

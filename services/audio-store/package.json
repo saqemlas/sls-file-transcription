@@ -1,0 +1,20 @@
+{
+  "name": "@audio-analysis/audio-store",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "clean": "rimraf node_modules .serverless",
+    "checktsc": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "coverage": "jest --collect-coverage",
+    "deploy": "yarn run serverless deploy",
+    "remove": "yarn run serverless remove"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.142.0",
+    "@aws-sdk/s3-request-presigner": "3.142.0"
+  },
+  "devDependencies": {
+    "@audio-analysis/common": "1.0.0"
+  }
+}

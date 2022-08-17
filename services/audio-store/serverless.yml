@@ -1,0 +1,158 @@
+service: audiostore
+
+plugins:
+  - serverless-esbuild
+  - serverless-iam-roles-per-function
+  - serverless-s3-cleaner
+
+package:
+  individually: true
+
+custom:
+  project: ${file(../config.yml):project}
+  baseName: ${self:custom.project}-${self:service}-${self:provider.stage}
+  fallbackEnv: ${file(../config.yml):defaultEnv}
+
+  esbuild:
+    packager: yarn
+    platform: node
+    target: node14
+    bundle: true
+    minify: true
+    sourcemap: true
+    keepNames: true
+
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  
+  serverless-s3-cleaner:
+    buckets:
+      - ${cf:${self:custom.baseName}.AudioStoreBucketName, ''}
+
+provider:
+  name: aws
+  region: ${opt:region, 'eu-west-1'}
+  stage: ${opt:stage, 'dev'}
+  stackName: ${self:custom.baseName}
+  stackTags: ${file(../config.yml):tags}
+  deploymentBucket:
+    name: ${cf:${self:custom.project}-common-${self:provider.stage}.ServerlessDeploymentBucketName}
+  runtime: nodejs14.x
+  memorySize: 128
+  timeout: 25
+  tracing:
+    lambda: ${file(../config.yml):tracing}
+    apiGateway: ${file(../config.yml):tracing}
+  logRetentionInDays: 30
+  versionFunctions: false
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    NODE_OPTIONS: "--enable-source-maps"
+    LOG_LEVEL: ${file(../config.yml):logLevel}
+    ENVIRONMENT: ${self:provider.stage}
+    FALLBACK_ENV: ${self:custom.fallbackEnv}
+  logs:
+    httpApi: true
+  httpApi:
+    cors:
+      allowedOrigins: 
+        - '*'
+      allowedMethods:
+        - GET
+        - POST
+  iam:
+    role:
+      name: ${self:custom.baseName}
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTelemetryRecords
+            - xray:PutTraceSegments
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*:log-stream:*
+        - Effect: Allow
+          Action: 
+            - s3:GetObject
+            - s3:PutObject
+          Resource: 
+            - !Sub arn:aws:s3:::${AudioStoreBucket}/* 
+
+functions:
+  GetObject:
+    name: ${self:custom.baseName}-getobject
+    handler: functions/getObject/index.handler
+    events:
+      - httpApi:
+          path: /getObject
+          method: GET
+    environment:
+      BUCKET_NAME: !Ref AudioStoreBucket
+  PutObject:
+    name: ${self:custom.baseName}-putobject
+    handler: functions/putObject/index.handler
+    events:
+      - httpApi:
+          path: /putObject
+          method: GET
+    environment:
+      BUCKET_NAME: !Ref AudioStoreBucket
+
+      
+resources:
+  Resources:
+
+    # S3
+
+    AudioStoreBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+    
+    AudioStoreBucketAccessPolicy:
+      DependsOn: AudioStoreBucket
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref AudioStoreBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Action: 
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListMultipartUploadParts
+                - s3:ListBucketMultipartUploads
+              Principal:
+                AWS: !Sub ${AWS::AccountId}
+              Resource: 
+                - !Sub arn:aws:s3:::${AudioStoreBucket}
+                - !Sub arn:aws:s3:::${AudioStoreBucket}/* 
+
+    # SSM
+
+    BucketNameParam:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/${self:service}/bucketName
+        Value: !Ref AudioStoreBucket
+        Type: String
+
+    EndpointDomainParam:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/${self:service}/endpointUrl
+        Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+        Type: String
+
+  Outputs:
+    AudioStoreBucketName:
+      Value: !Ref AudioStoreBucket

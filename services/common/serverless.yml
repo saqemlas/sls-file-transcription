@@ -1,0 +1,25 @@
+service: common
+
+plugins:
+  - serverless-s3-cleaner
+
+custom:
+  project: ${file(../config.yml):project}
+  baseName: ${self:custom.project}-${self:service}-${self:provider.stage}
+  fallbackEnv: ${file(../config.yml):defaultEnv}
+
+  serverless-s3-cleaner:
+    buckets:
+      - ${cf:${self:custom.baseName}.ServerlessDeploymentBucketName, ''}
+
+provider:
+  name: aws
+  region: ${opt:region, 'eu-west-1'}
+  stage: ${opt:stage, 'dev'}
+  stackName: ${self:custom.baseName}
+  stackTags: ${file(../config.yml):tags}
+  deploymentBucket:
+    blockPublicAccess: true
+
+resources:
+  Resources:

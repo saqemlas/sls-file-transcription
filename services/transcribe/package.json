@@ -1,0 +1,19 @@
+{
+  "name": "@audio-analysis/transcribe",
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "clean": "rimraf node_modules .serverless",
+    "checktsc": "tsc --noEmit",
+    "test": "jest --passWithNoTests",
+    "coverage": "jest --collect-coverage",
+    "deploy": "yarn run serverless deploy",
+    "remove": "yarn run serverless remove"
+  },
+  "dependencies": {
+    "@aws-sdk/client-transcribe": "3.142.0"
+  },
+  "devDependencies": {
+    "@audio-analysis/audio-store": "1.0.0"
+  }
+}

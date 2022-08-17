@@ -1,0 +1,11 @@
+coverage
+.serverless
+node_modules
+
+.gitignore
+.eslintignore
+lerna.json
+jest.config.ts
+package.json
+tsconfig.json
+.editorconfig

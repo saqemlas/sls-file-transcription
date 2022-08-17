@@ -1,0 +1,161 @@
+service: transcribe
+
+plugins:
+  - serverless-esbuild
+  - serverless-iam-roles-per-function
+  - serverless-s3-cleaner
+
+package:
+  individually: true
+
+custom:
+  project: ${file(../config.yml):project}
+  baseName: ${self:custom.project}-${self:service}-${self:provider.stage}
+  fallbackEnv: ${file(../config.yml):defaultEnv}
+
+  esbuild:
+    packager: yarn
+    platform: node
+    target: node14
+    bundle: true
+    minify: true
+    sourcemap: true
+    keepNames: true
+
+  serverless-iam-roles-per-function:
+    defaultInherit: true
+  
+  serverless-s3-cleaner:
+    buckets:
+      - ${cf:${self:custom.baseName}.TranscriptionBucketName, ''}
+
+  audioStoreBucketName: ${ssm:/${self:provider.stage}/audiostore/bucketName}
+
+provider:
+  name: aws
+  region: ${opt:region, 'eu-west-1'}
+  stage: ${opt:stage, 'dev'}
+  stackName: ${self:custom.baseName}
+  stackTags: ${file(../config.yml):tags}
+  deploymentBucket:
+    name: ${cf:${self:custom.project}-common-${self:provider.stage}.ServerlessDeploymentBucketName}
+  runtime: nodejs14.x
+  memorySize: 128
+  timeout: 25
+  tracing:
+    lambda: ${file(../config.yml):tracing}
+  logRetentionInDays: 30
+  versionFunctions: false
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    NODE_OPTIONS: "--enable-source-maps"
+    LOG_LEVEL: ${file(../config.yml):logLevel}
+    REGION: ${self:provider.region}
+    ENVIRONMENT: ${self:provider.stage}
+    FALLBACK_ENV: ${self:custom.fallbackEnv}
+  iam:
+    role:
+      name: ${self:custom.baseName}
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTelemetryRecords
+            - xray:PutTraceSegments
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: !Sub arn:aws:logs:${self:provider.region}:${AWS::AccountId}:log-group:/aws/lambda/*:log-stream:*
+        - Effect: Allow
+          Action:
+            - transcribe:StartTranscriptionJob
+            - transcribe:GetTranscriptionJob
+          Resource: !Sub arn:aws:transcribe:${self:provider.region}:${AWS::AccountId}:transcription-job/*
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+          Resource:
+            - !Sub arn:aws:s3:::${TranscriptionBucket}/* 
+        - Effect: Allow
+          Action: 
+            - s3:GetObject
+          Resource:
+            - !Sub arn:aws:s3:::${self:custom.audioStoreBucketName}/* 
+
+functions:
+  startTranscribe:
+    name: ${self:custom.baseName}-starttranscribe
+    handler: functions/startTranscribe/index.handler
+    events:
+      - s3:
+          bucket: ${self:custom.audioStoreBucketName}
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: audio/
+            - suffix: .mp3
+          existing: true
+          forceDeploy: true
+    environment:
+      BUCKET_NAME: !Ref TranscriptionBucket
+  processText:
+    name: ${self:custom.baseName}-processtext
+    handler: functions/processText/index.handler
+    events:
+      - s3:
+          bucket: !Ref TranscriptionBucket
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: text/
+            - suffix: .json
+          existing: true
+          forceDeploy: true
+
+resources:
+  Resources:
+
+    # S3
+
+    TranscriptionBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        AccessControl: Private
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+    
+    AudioStoreBucketAccessPolicy:
+      DependsOn: TranscriptionBucket
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref TranscriptionBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Action: 
+                - s3:GetObject
+                - s3:PutObject
+                - s3:ListMultipartUploadParts
+                - s3:ListBucketMultipartUploads
+              Principal:
+                AWS: !Sub ${AWS::AccountId}
+              Resource: 
+                - !Sub arn:aws:s3:::${TranscriptionBucket}
+                - !Sub arn:aws:s3:::${TranscriptionBucket}/* 
+
+    # SSM
+
+    BucketNameParam:
+      Type: AWS::SSM::Parameter
+      Properties:
+        Name: /${self:provider.stage}/${self:service}/bucketName
+        Value: !Ref TranscriptionBucket
+        Type: String
+
+  Outputs:
+    TranscriptionBucketName:
+      Value: !Ref TranscriptionBucket
