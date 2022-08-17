@@ -2,29 +2,13 @@
 
 ## Info
 
-This handles deployment of microservices with Serverless Framework Stacks using 
-Yarn workspaces and Lerna. Dependencies between stacks are maintained with lerna 
-through the package dependencies in the package.json files. Stacks are deployed 
-in parallel, maintaining the dependencies order.
+...
 
-To minimize the number of S3 buckets created, all services use the same deployment 
-bucket from the common service.
+## Architecture
 
-This covers...
-- stack management stacks
-- common code sharing between stacks stacks/common
-- common config sharing between stacks stacks/config
-- dependency management (reduce duplicate) using Yarn Workspaces
-- using Esbuild for speeding up the development
-- using Jest for testing
-- using ts-jest for test transpilation
-
-...other good practices:
-- logging objects using JSON
-- source maps using native Node feature
-- the least privilege access by using Serverless plugin
-- using modern ES2020 constructs
-- using Lerna dependency tree for deployment in the right order
+<p align="center">
+  <img src="/architecture-diagram.drawio.svg" />
+</p>
 
 
 ## Project Dependencies
