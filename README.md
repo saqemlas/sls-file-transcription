@@ -2,7 +2,12 @@
 
 ## Info
 
-...
+This handles the deployment for a transcription service. This works by
+
+- Uploading an mp3 file to an s3 bucket
+- Lambda triggered by S3 bucket object uploads, sends file to AWS Transcribe
+- On Transcription Job Completion, Transcribe sends output to another S3 bucket
+- Another Lambda triggered by S3 bucket object uploads, process text from transcription
 
 ## Architecture
 
@@ -15,13 +20,9 @@
 
 This project uses...
 - [yarn](https://classic.yarnpkg.com/lang/en/) (v1.22.13) Dependency management.
-
 - [lerna](https://lerna.js.org/) (v4.0.0) Multipackage (monorepo) management.
-
-- [serverless framework](https://www.serverless.com/) (v2.62.0) Deployment tooling. 
-
+- [serverless framework](https://www.serverless.com/) (v3.21.0) Deployment tooling. 
 - [typescript](https://www.typescriptlang.org/) (v4.4.3) Scripting language. 
-
 - [jest](https://jestjs.io/) (v26.6.3) Testing.
 
 
